@@ -2,6 +2,7 @@ import math
 import os
 import sys
 import tkFileDialog
+import traceback
 
 __doc__ = "(temporary) rudimentary encryption routine"
 
@@ -102,13 +103,17 @@ if __name__ == "__main__":
     dest = tkFileDialog.asksaveasfilename(title = "Destination (file)")
     tmpcrypt = TMPCrypt(raw_input("Key: "))
 
-    with open(path, "rb") as sfp:
-        with open(dest, "r+b" if os.path.exists(dest) else "wb") as dfp:
-            dfp.write(tmpcrypt.encrypt(sfp.read()))
-            dfp.truncate()
-
-            try:
-                os.fdatasync(dfp.fileno())
-            except:
-                print "os.fdatasync failed.  Continuing anyway."
-            print "Encrypted to \"%s\"" % dest
+    try:
+        with open(path, "rb") as sfp:
+            with open(dest, "r+b" if os.path.exists(dest) else "wb") as dfp:
+                dfp.write(tmpcrypt.encrypt(sfp.read()))
+                dfp.truncate()
+    
+                try:
+                    os.fdatasync(dfp.fileno())
+                except:
+                    print "os.fdatasync failed.  Continuing anyway."
+                print "Encrypted to \"%s\"" % dest
+    except Exception as e:
+        print >>sys.stderr, traceback.format_exc(e)
+    raw_input("Press Enter to exit...")
