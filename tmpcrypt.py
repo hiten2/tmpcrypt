@@ -100,9 +100,19 @@ class TMPCrypt:
 if __name__ == "__main__":
     ctext = None
     path = tkFileDialog.askopenfilename(title = "Source (file)")
-    dest = tkFileDialog.asksaveasfilename(title = "Destination (file)")
-    tmpcrypt = TMPCrypt(raw_input("Key: "))
 
+    if not path:
+        print "Invalid path."
+        raw_input("Press Enter to exit...")
+        sys.exit(1)
+    dest = tkFileDialog.asksaveasfilename(title = "Destination (file)")
+    
+    if not dest:
+        print "Invalid path."
+        raw_input("Press Enter to exit...")
+        sys.exit(1)
+    tmpcrypt = TMPCrypt(raw_input("Key: "))
+    
     try:
         with open(path, "rb") as sfp:
             with open(dest, "r+b" if os.path.exists(dest) else "wb") as dfp:
@@ -117,3 +127,4 @@ if __name__ == "__main__":
     except Exception as e:
         print >>sys.stderr, traceback.format_exc(e)
     raw_input("Press Enter to exit...")
+    sys.exit()
