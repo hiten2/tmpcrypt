@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+import tkFileDialog
 
 __doc__ = "(temporary) rudimentary encryption routine"
 
@@ -55,8 +56,6 @@ class TMPCrypt:
 
             self.p_box[k + 1:] = self.p_box[-1:] + self.p_box[k + 1:-1]
         self.rp_box = sorted(range(256), key = lambda i: self.p_box[i])
-        print [self.p_box]
-        print [self.rp_box]
 
     def decrypt(self, s):
         bi = None # override garbage collection
@@ -98,40 +97,18 @@ class TMPCrypt:
         return str(s)
 
 if __name__ == "__main__":
-    k = ""#some key"
-    s = "this is a test"
-    t = TMPCrypt(k)
-    c = t.encrypt(s)
-    p = t.decrypt(c)
-    print s.encode("hex")
-    print c.encode("hex")
-    print p.encode("hex")
-    print s == p
-    sys.exit()
-    path = None
-
-    while 1:
-        path = raw_input("Path: ")
-        
-        if os.path.exists(path):
-            break
-        print "That path doesn't exist."
-    dest = path + ".encrypted"
-
-    if os.path.exists(dest):
-        if not raw_input("Destination exists: overwrite? [Y/n]") \
-               .strip().upper() == "Y":
-            sys.exit(1)
     ctext = None
+    path = tkFileDialog.askopenfilename(title = "Source (file)")
+    dest = tkFileDialog.asksaveasfilename(title = "Destination (file)")
     tmpcrypt = TMPCrypt(raw_input("Key: "))
 
     with open(path, "rb") as sfp:
-        with open(path, "r+b" if os.path.exists(dest) else "wb") as dfp:
-            dfp.write(tmpcrypt(sfp.read()))
+        with open(dest, "r+b" if os.path.exists(dest) else "wb") as dfp:
+            dfp.write(tmpcrypt.encrypt(sfp.read()))
             dfp.truncate()
 
             try:
                 os.fdatasync(dfp.fileno())
             except:
                 print "os.fdatasync failed.  Continuing anyway."
-    print "Encrypted to \"%s\"" % dest
+            print "Encrypted to \"%s\"" % dest
