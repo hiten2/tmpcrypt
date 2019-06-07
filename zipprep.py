@@ -1,5 +1,6 @@
 import os
 import tkFileDialog
+import traceback
 
 __doc__ = "zipprep - recursively prepare pathnames within a directory for use in a ZIP file"
 
@@ -30,20 +31,23 @@ are you sure you want to continue? [Y/n] """).strip().upper() == "Y":
     dirs = []
     files = []
 
-    for r, ds, fs in os.walk(root, topdown = False):
-        dirs += [os.path.join(r, d) for d in ds]
-        files += [os.path.join(r, f) for f in fs]
-
-    for path in files + dirs + [root]:
-            i = 1
-            norm = os.path.join(os.path.dirname(path), zip_normalize_path(os.path.basename(path)))
-
-            if path == norm:
-                continue
-
-            while os.path.exists(norm):
-                norm = (".%u" % i).join(os.path.splitext(norm))
-                i += 1
-            print "\"%s\" -> \"%s\"" % (path, norm)
-            os.rename(path, norm)
-    raw_input("Press Enter to exit...")
+    try:
+        for r, ds, fs in os.walk(root, topdown = False):
+            dirs += [os.path.join(r, d) for d in ds]
+            files += [os.path.join(r, f) for f in fs]
+    
+        for path in files + dirs + [root]:
+                i = 1
+                norm = os.path.join(os.path.dirname(path), zip_normalize_path(os.path.basename(path)))
+    
+                if path == norm:
+                    continue
+    
+                while os.path.exists(norm):
+                    norm = (".%u" % i).join(os.path.splitext(norm))
+                    i += 1
+                print "\"%s\" -> \"%s\"" % (path, norm)
+                os.rename(path, norm)
+    except Exception as e:
+        print >> sys.stderr, traceback.format_exc(e)
+        raw_input("Press Enter to exit...")
