@@ -17,6 +17,7 @@ def zip_normalize_path(p):
 
 if __name__ == "__main__":
     try:
+        print "zipprep - make pathnames below a particular directory ZIP-safe"
         root = tkFileDialog.askdirectory(title = "Choose directory")
 
         if not root:
