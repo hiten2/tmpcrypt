@@ -46,16 +46,17 @@ class TMPCrypt:
         # brief refresher of the whirlpool algorithm:
         #   for each octet as index in key:
         #       P-Box left of index is rotated right
-        #       P-Box right of index is rotated right
+        #       P-Box right of index is rotated left
 
         for k in self.key:
             # rotate left side right (element at k - 1 is now at 0)
 
             self.p_box[:k] = self.p_box[k - 1:k] + self.p_box[:k - 1]
 
-            # rotate right side left (element at 255 is now at k + 1)
+            # rotate right side left (element at k + 1 is now at 255)
 
-            self.p_box[k + 1:] = self.p_box[-1:] + self.p_box[k + 1:-1]
+            self.p_box[k + 1:] = self.p_box[k + 2:] \
+                + self.p_box[k + 1:k + 2]
         self.rp_box = sorted(range(256), key = lambda i: self.p_box[i])
 
     def decrypt(self, s):
@@ -112,11 +113,15 @@ if __name__ == "__main__":
         raw_input("Press Enter to exit...")
         sys.exit(1)
     tmpcrypt = TMPCrypt(raw_input("Key: "))
+    func = tmpcrypt.encrypt
+
+    if "-d" in sys.argv[1:] or "--decrypt" in sys.argv[1:]:
+        func = tmpcrypt.decrypt
     
     try:
         with open(path, "rb") as sfp:
             with open(dest, "r+b" if os.path.exists(dest) else "wb") as dfp:
-                dfp.write(tmpcrypt.encrypt(sfp.read()))
+                dfp.write(func(sfp.read()))
                 dfp.truncate()
     
                 try:
