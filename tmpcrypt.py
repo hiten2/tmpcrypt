@@ -99,6 +99,7 @@ class TMPCrypt:
         return str(s)
 
 if __name__ == "__main__":
+    buflen = 1 << 24 # 16 MiB
     ctext = None
     path = tkFileDialog.askopenfilename(title = "Source (file)")
 
@@ -121,7 +122,13 @@ if __name__ == "__main__":
     try:
         with open(path, "rb") as sfp:
             with open(dest, "r+b" if os.path.exists(dest) else "wb") as dfp:
-                dfp.write(func(sfp.read()))
+                while 1:
+                    chunk = sfp.read(buflen)
+
+                    if not chunk:
+                        break
+                    dfp.write(func(chunk))
+                    del chunk
                 dfp.truncate()
     
                 try:
