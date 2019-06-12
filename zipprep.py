@@ -25,9 +25,9 @@ if __name__ == "__main__":
             print "Invalid directory."
             raw_input("Press Enter to exit...")
             sys.exit(1)
-        print """You've selected \"%s\",
-however, this will sanitize all pathnames beneath it (inclusive):
-are you sure you want to continue? [Y/n]""" % root,
+        print "You've selected,", root
+        print """however, this will sanitize all pathnames beneath it (inclusive):
+are you sure you want to continue? [Y/n]""",
         root_parent = os.path.dirname(root)
         root_name = os.path.basename(root)
 
@@ -51,7 +51,7 @@ are you sure you want to continue? [Y/n]""" % root,
                 while os.path.exists(norm):
                     norm = (".%u" % i).join(os.path.splitext(norm))
                     i += 1
-                print "\"%s\" -> \"%s\"" % (path, norm)
+                print path, "->", norm
                 os.rename(path, norm)
         print "Sanitized."
     except Exception as e:
