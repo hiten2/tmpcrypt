@@ -12,8 +12,8 @@ class Blocks:
     def __init__(self, size):
         self.size = size
 
-    def __call__(self, s):
-        i = 0
+    def __call__(self, s, start = 0):
+        i = start
 
         while i < len(s):
             yield i
@@ -25,8 +25,8 @@ class RBlocks:
     def __init__(self, size):
         self.size = size
 
-    def __call__(self, s):
-        i = len(s) - len(s) % self.size # operate on proper offset
+    def __call__(self, s, start = 0):
+        i = start + (len(s) - start) - (len(s) - start) % self.size # operate on proper offset
 
         while i >= 0:
             yield i
@@ -39,6 +39,8 @@ class TMPCrypt:
     
     def __init__(self, key):
         self.key = bytearray(key)
+        self.dki = 0 # decryption key index
+        self.eki = 0 # encryption key index
         self.p_box = list(TMPCrypt.P_BOX)
 
         # prep P-Box using Snapper's whirlpool algorithm
@@ -63,9 +65,22 @@ class TMPCrypt:
         bi = None # override garbage collection
         s = bytearray(s)
 
-        for b in Blocks(len(self.key))(s):
-            for i, k in enumerate(self.key):
-                bi = b + i # block index + internal index
+        for i, k in enumerate(self.key[self.dki:]):
+            # permute
+
+            s[i] = self.rp_box[s[i]]
+
+            # XOR with key
+
+            s[i] ^= k
+
+            self.dki += 1
+
+        self.dki %= len(self.key)
+
+        for b in Blocks(len(self.key))(s, self.dki):
+            for k in self.key:
+                bi = b + self.dki # block index + decryption key index
 
                 if bi >= len(s):
                     break
@@ -77,15 +92,31 @@ class TMPCrypt:
                 # XOR with key
                 
                 s[bi] ^= k
+
+                self.dki += 1
+            self.dki %= len(self.key)
         return str(s)
     
     def encrypt(self, s):
         bi = None # override garbage collection
         s = bytearray(s)
 
-        for b in Blocks(len(self.key))(s):
-            for i, k in enumerate(self.key):
-                bi = b + i # block index + internal index
+        for i, k in enumerate(self.key[self.eki:]):
+            # XOR with key
+
+            s[i] ^= k
+
+            # permute
+
+            s[i] = self.rp_box[s[i]]
+
+            self.eki += 1
+
+        self.eki %= len(self.key)
+
+        for b in Blocks(len(self.key))(s, self.eki):
+            for k in self.key:
+                bi = b + self.eki # block index + encryption key index
 
                 if bi >= len(s):
                     break
@@ -96,6 +127,9 @@ class TMPCrypt:
                 # permute
 
                 s[bi] = self.p_box[s[bi]]
+
+                self.eki += 1
+            self.eki %= len(self.key)
         return str(s)
 
 if __name__ == "__main__":
