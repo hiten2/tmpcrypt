@@ -1,8 +1,8 @@
 #include "tmpcrypt.h"
 
 /* tmpcrypt - light, fast, and now in C */
-
-const static uint8_t tmpcrypt_pbox[256] = {
+/////////////////////////////////store key index separately for decryption & encryption
+static uint8_t tmpcrypt_pbox[256] = {
   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
   17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
   33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
@@ -21,11 +21,9 @@ const static uint8_t tmpcrypt_pbox[256] = {
   240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255
 };
 
-/* decrypt a buffer in-place */
 int tmpcrypt_decrypt(uint8_t *buf, struct tmpcrypt *cipher, size_t size) {
   uint8_t c;
   size_t i;
-  size_t k;
   int retval;
 
   if (buf == NULL)
@@ -45,20 +43,22 @@ int tmpcrypt_decrypt(uint8_t *buf, struct tmpcrypt *cipher, size_t size) {
   i = 0;
   
   while (i < size) {
-    for (k = 0; i < size && k < cipher->key_size; i++, k++) {
+    while (i < size && cipher->dki < cipher->key_size) {
       /* permute */
 
       buf[i] = cipher->rpbox[buf[i]];
       
       /* XOR with key */
 
-      buf[i] ^= cipher->key[k];
+      buf[i] ^= cipher->key[cipher->dki];
+      
+      cipher->dki = (cipher->dki + 1) % cipher->key_size;
+      i++;
     }
   }
   return 0;
 }
 
-/* encrypt a buffer in-place */
 int tmpcrypt_encrypt(uint8_t *buf, struct tmpcrypt *cipher, size_t size) {
   uint8_t c;
   size_t i;
@@ -82,20 +82,51 @@ int tmpcrypt_encrypt(uint8_t *buf, struct tmpcrypt *cipher, size_t size) {
   i = 0;
   
   while (i < size) {
-    for (k = 0; i < size && k < cipher->key_size; i++, k++) {
+    while (i < size && cipher->eki < cipher->key_size) {
       /* XOR with key */
 
-      buf[i] ^= cipher->key[k];
-
+      buf[i] ^= cipher->key[cipher->eki];
+      
       /* permute */
 
-      buf[i] = cipher->pbox[buf[i]];
+      buf[i] = cipher->rpbox[buf[i]];
+      
+      cipher->dki = (cipher->eki + 1) % cipher->key_size;
+      i++;
     }
   }
   return 0;
 }
 
-/* generate the P-Box and reverse P-Box using the cipher's key */
+int tmpcrypt_init(struct tmpcrypt *cipher, uint8_t *key, size_t key_size) {
+  int retval;
+  
+  if (cipher == NULL)
+    return -EFAULT;
+  
+  if (key == NULL)
+    return -EFAULT;
+  *cipher = (struct tmpcrypt) {
+    .dki = 0,
+    .eki = 0,
+    .key = key,
+    .key_size = key_size
+  };
+  
+  /* generate P-Boxes */
+  
+  retval = tmpcrypt_generate_pboxes(cipher);
+  
+  if (retval)
+    /* clean */
+    
+    *cipher = (struct tmpcrypt) {
+      .key = NULL,
+      .key_size = 0
+    };
+  return retval;
+}
+
 int tmpcrypt_generate_pboxes(struct tmpcrypt *cipher) {
   uint8_t k;
   size_t i;
@@ -144,7 +175,24 @@ int tmpcrypt_generate_pboxes(struct tmpcrypt *cipher) {
   return 0;
 }
 
-/* return whether the P-Boxes correspond */
+int tmpcrypt_load_default_pbox(char *path) {
+  int fd;
+  int retval;
+  
+  if (path == NULL)
+    return -EFAULT;
+  fd = open(path, O_RDONLY);
+  
+  if (fd < 0)
+    return -EBADF;
+  retval = 0;
+  
+  if (read(fd, &tmpcrypt_pbox, sizeof(tmpcrypt_pbox)) != sizeof(tmpcrypt_pbox))
+    retval = errno ? -errno : -EIO;
+  close(fd);
+  return retval;
+}
+
 int tmpcrypt_validate_pboxes(struct tmpcrypt *cipher) {
   struct tmpcrypt _cipher;
   int retval;
