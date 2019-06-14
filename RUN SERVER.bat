@@ -1,1 +1,1 @@
-c:\Python27\python.exe serve.py  && pause
+c:\Python27\python.exe pureserver.py && pause
