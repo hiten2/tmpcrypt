@@ -1,10 +1,14 @@
 import os
 import socket
+import sys
+import traceback
 
-if __name__ == "__main__":
+def main():
     buflen = 1 << 24
     print "Opening server on :80..."
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     sock.bind(("", 80))
     sock.listen(1)
 
@@ -47,3 +51,10 @@ if __name__ == "__main__":
         except socket.error:
             conn.close()
             print "Connection closed."
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print >> sys.stderr, traceback.format_exc(e)
+    raw_input("Press Enter to exit...")
