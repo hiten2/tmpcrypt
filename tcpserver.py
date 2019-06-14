@@ -36,6 +36,7 @@ if __name__ == "__main__":
                     if not chunk:
                         break
                     conn.sendall(chunk)
+                    sent += len(chunk)
                     print "Sent %u/%u bytes (%.2f%%)..." % (sent, size, sent / float(size) * 100)
                     del chunk
                 del sent
